@@ -1,0 +1,46 @@
+
+
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+Frame.BorderSizePixel = 0
+Frame.Position = UDim2.new(0.228489488, 0, 0.236641228, 0)
+Frame.Size = UDim2.new(0, 554, 0, 392)
+
+local ChartModule = loadstring(game:HttpGet("https://github.com/hisawg02/Roblox_Lua_Line_chart_module/raw/refs/heads/main/Main"))()
+local myFrame = Frame
+
+
+local seriesDefinitions = {
+	{"Series1", Color3.fromRGB(255, 0, 0)},
+	{"Series2", Color3.fromRGB(0, 255, 0)},
+	{"Series3", Color3.fromRGB(0, 255, 255)},
+	{"Series4", Color3.fromRGB(255, 255, 0)},
+	{"Series5", Color3.fromRGB(255, 255, 255)},
+}
+
+local myChart = ChartModule.CreateChart(myFrame, 100, 0, 10, Color3.fromRGB(0,255,0), seriesDefinitions)
+
+myChart:changeChart(120, -20)
+
+local i = 0
+local i2 = 0
+
+while true do
+	wait(1)
+	i = math.random(i-30,i+30)
+	i2 = math.random(i2-30,i2+30)
+	myChart:updateChart({
+		{"Series1", i},
+		{"Series2", i2},
+		{"Series3", i + i2},
+		{"Series4", i - i2},
+		{"Series5", i + i2 + math.random(1,10)},
+	})
+end
