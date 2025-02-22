@@ -1,4 +1,5 @@
 # Roblox_Lua_Line_chart_module
+by:hahaxio7777(DC)
 **(This file will have a display bug and will be fixed later)**
 
 Used to create line charts
