@@ -1,0 +1,228 @@
+--by:hahaxio7777(DC)
+
+local ChartModule = {}
+
+function ChartModule.CreateChart(frame, maxValue, minValue, displayCount, textColor, seriesTable)
+	if textColor == nil then
+		textColor = Color3.fromRGB(0, 0, 0)
+	end
+
+
+	if seriesTable == nil then
+		seriesTable = {{"Default", Color3.fromRGB(255, 0, 0)}}
+	end
+
+	local chart = {}
+	chart.frame = frame
+	chart.maxValue = maxValue
+	chart.minValue = minValue
+	chart.displayCount = displayCount or -1
+
+	chart.width = frame.AbsoluteSize.X
+	chart.height = frame.AbsoluteSize.Y
+
+	frame.ClipsDescendants = true
+
+	local labels = {}
+	local function createLabel(name, size, position, text)
+		local label = Instance.new("TextLabel")
+		label.Name = name
+		label.Size = size
+		label.Position = position
+		label.BackgroundTransparency = 1
+		label.TextScaled = true
+		label.Text = text
+		label.ZIndex = 10
+		label.TextColor3 = textColor
+		label.Parent = frame
+		table.insert(labels, label)
+		return label
+	end
+
+	chart.maxLabel = createLabel("MaxLabel", UDim2.new(0, 50, 0, 20), UDim2.new(0, 0, 0, 0), tostring(maxValue))
+	chart.midLabel = createLabel("MidLabel", UDim2.new(0, 50, 0, 20), UDim2.new(0, 0, 0.5, -10), tostring((maxValue + minValue) / 2))
+	chart.minLabel = createLabel("MinLabel", UDim2.new(0, 50, 0, 20), UDim2.new(0, 0, 1, -20), tostring(minValue))
+
+	chart.leftIndexLabel = createLabel("LeftIndexLabel", UDim2.new(0, 50, 0, 20), UDim2.new(0, 60, 1, -20), "0")
+	chart.midIndexLabel = createLabel("MidIndexLabel", UDim2.new(0, 50, 0, 20), UDim2.new(0.5, 0, 1, -20), "0")
+	chart.rightIndexLabel = createLabel("RightIndexLabel", UDim2.new(0, 50, 0, 20), UDim2.new(1, -10, 1, -20), "0")
+	chart.rightIndexLabel.AnchorPoint = Vector2.new(1, 1)
+
+	chart.seriesPoints = {}
+	chart.seriesLineSegments = {}
+	chart.seriesColors = {}
+
+	for _, seriesDef in ipairs(seriesTable) do
+		local name = seriesDef[1]
+		local color = seriesDef[2]
+		chart.seriesPoints[name] = {}
+		chart.seriesLineSegments[name] = {}
+		chart.seriesColors[name] = color
+	end
+
+	function chart:updateChart(updates)
+		for _, update in ipairs(updates) do
+			local seriesName = update[1]
+			local newValue = update[2]
+			if not self.seriesPoints[seriesName] then
+				warn("Series '" .. tostring(seriesName) .. "' not found!")
+			else
+				table.insert(self.seriesPoints[seriesName], newValue)
+			end
+			if newValue > self.maxValue then
+				self.maxValue = newValue
+				self.maxLabel.Text = tostring(self.maxValue)
+			end
+			if newValue < self.minValue then
+				self.minValue = newValue
+				self.minLabel.Text = tostring(self.minValue)
+			end
+		end
+		self.midLabel.Text = tostring((self.maxValue + self.minValue) / 2)
+		self:redrawChart()
+	end
+
+	function chart:changeChart(newMax, newMin)
+		self.maxValue = newMax
+		self.minValue = newMin
+		self.maxLabel.Text = tostring(newMax)
+		self.minLabel.Text = tostring(newMin)
+		self.midLabel.Text = tostring((newMax + newMin) / 2)
+		self:redrawChart()
+	end
+
+	function chart:redrawChart()
+		local globalCount = 0
+		for _, points in pairs(self.seriesPoints) do
+			if #points > globalCount then
+				globalCount = #points
+			end
+		end
+
+		local displayNum = (self.displayCount == -1) and globalCount or math.min(self.displayCount, globalCount)
+		local leftIndex = math.max(0, globalCount - displayNum)
+		local rightIndex = globalCount - 1
+		local midIndex = math.floor((leftIndex + rightIndex) / 2)
+		self.leftIndexLabel.Text = tostring(leftIndex)
+		self.midIndexLabel.Text = tostring(midIndex)
+		self.rightIndexLabel.Text = tostring(rightIndex)
+
+		for seriesName, segments in pairs(self.seriesLineSegments) do
+			for _, line in ipairs(segments) do
+				if line and line.Parent then
+					line:Destroy()
+				end
+			end
+			self.seriesLineSegments[seriesName] = {}
+		end
+
+		if displayNum < 2 then return end
+
+		local spacing = self.width / (displayNum - 1)
+
+		for seriesName, points in pairs(self.seriesPoints) do
+			for i = 1, displayNum - 1 do
+				local index1 = leftIndex + i
+				local index2 = leftIndex + i + 1
+				local value1 = points[index1]
+				local value2 = points[index2]
+				if value1 and value2 then
+					local x1 = (i - 1) * spacing
+					local x2 = i * spacing
+					local y1 = self.height - ((value1 - self.minValue) / (self.maxValue - self.minValue) * self.height)
+					local y2 = self.height - ((value2 - self.minValue) / (self.maxValue - self.minValue) * self.height)
+					y1 = math.clamp(y1, 0, self.height)
+					y2 = math.clamp(y2, 0, self.height)
+					local startPos = Vector2.new(x1, y1)
+					local endPos = Vector2.new(x2, y2)
+					local delta = endPos - startPos
+					local distance = delta.Magnitude
+
+					local line = Instance.new("Frame")
+					line.AnchorPoint = Vector2.new(0.5, 0.5)
+					line.BackgroundColor3 = self.seriesColors[seriesName]
+					line.BorderSizePixel = 0
+					line.Size = UDim2.new(0, distance, 0, 2)
+					line.Position = UDim2.new(0, (startPos.X + endPos.X) / 2, 0, (startPos.Y + endPos.Y) / 2)
+					line.Rotation = math.deg(math.atan2(delta.Y, delta.X))
+					line.ZIndex = 1
+					line.Parent = self.frame
+
+					table.insert(self.seriesLineSegments[seriesName], line)
+				end
+			end
+		end
+	end
+	
+	-----------------------------------------------
+	
+	local function Color3ToHex(color)
+		return string.format("#%02X%02X%02X", math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255))
+	end
+
+	local hoverLine = Instance.new("Frame")
+	hoverLine.Name = "HoverLine"
+	hoverLine.Size = UDim2.new(0, 2, 1, 0)
+	hoverLine.BackgroundColor3 = Color3.new(1, 1, 1)
+	hoverLine.Visible = false
+	hoverLine.ZIndex = 5
+	hoverLine.Parent = frame
+	chart.hoverLine = hoverLine
+
+	local hoverData = Instance.new("TextLabel")
+	hoverData.Name = "HoverData"
+	hoverData.Size = UDim2.new(0, 360, 0, 120)
+	hoverData.BackgroundTransparency = 0.5
+	hoverData.BackgroundColor3 = Color3.new(0, 0, 0)
+	hoverData.TextColor3 = Color3.new(1, 1, 1)
+	hoverData.TextScaled = true
+	hoverData.RichText = true
+	hoverData.Visible = false
+	hoverData.ZIndex = 11
+	local screenGui = frame:FindFirstAncestorWhichIsA("ScreenGui") or frame.Parent
+	hoverData.Parent = screenGui
+	chart.hoverData = hoverData
+
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			local mousePos = input.Position
+			local relativePos = Vector2.new(mousePos.X, mousePos.Y) - frame.AbsolutePosition
+			local clampedX = math.clamp(relativePos.X, 0, chart.width)
+			hoverLine.Position = UDim2.new(0, clampedX, 0, 0)
+			hoverLine.Visible = true
+
+			local globalCount = 0
+			for _, points in pairs(chart.seriesPoints) do
+				if #points > globalCount then
+					globalCount = #points
+				end
+			end
+			local displayNum = (chart.displayCount == -1) and globalCount or math.min(chart.displayCount, globalCount)
+			local leftIndex = math.max(0, globalCount - displayNum)
+			local spacing = chart.width / (displayNum - 1)
+			local index = math.floor(clampedX / spacing) + leftIndex
+
+			local dataStr = "Index: " .. tostring(index) .. "\n"
+			for seriesName, points in pairs(chart.seriesPoints) do
+				local value = points[index + 1]
+				if value then
+					local hexColor = Color3ToHex(chart.seriesColors[seriesName])
+					dataStr = dataStr .. '<font color="' .. hexColor .. '">' .. seriesName .. ": " .. tostring(value) .. '</font>\n'
+				end
+			end
+			hoverData.Text = dataStr
+			hoverData.Position = UDim2.new(0, mousePos.X + 5, 0, mousePos.Y + 5)
+			hoverData.Visible = true
+		end
+	end)
+
+	frame.MouseLeave:Connect(function()
+		hoverLine.Visible = false
+		hoverData.Visible = false
+	end)
+	-----------------------------------------------
+
+	return chart
+end
+
+return ChartModule
