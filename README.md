@@ -1,5 +1,5 @@
 # Roblox_Lua_Line_chart_module
-Used to create line charts
+Used to create line charts \n
 ##Usage:
 ###1.Import
 Example:
