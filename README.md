@@ -1,4 +1,6 @@
 # Roblox_Lua_Line_chart_module
+**(This file will have a display bug and will be fixed later)**
+
 Used to create line charts
 
 Usage:
@@ -35,7 +37,7 @@ local myChart = ChartModule.CreateChart(<Frame>, 100, 0, 10, Color3.fromRGB(0,25
 	{"Series2", Color3.fromRGB(0, 255, 0)},
 	{"Series3", Color3.fromRGB(0, 255, 255)},
 	{"Series4", Color3.fromRGB(255, 255, 0)},
-	{"Series5", Color3.fromRGB(255, 255, 255)},)
+	{"Series5", Color3.fromRGB(255, 255, 255)})
 ```
 
 3.Functions:
